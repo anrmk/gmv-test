@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="shortcut icon" type="image/ico" href="public/favicon.ico" />
+    <link rel="stylesheet" href="public/css/jquery-ui.css" type="text/css" />
+    <link rel="stylesheet" href="public/css/slick.grid.css" type="text/css" />
+    <link rel="stylesheet" href="public/css/examples.css" type="text/css" />
+    <style>
+      .totals {
+        font-weight: bold;
+        color: gray;
+        font-style: italic;
+      }
+      .averages {
+        font-weight: bold;
+        color: rebeccapurple;
+        font-size: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="position: relative">
+      <div style="width: 600px">
+        <div id="myGrid" style="width: 100%; height: 500px"></div>
+      </div>
+
+      <div class="options-panel">
+        <h2>Demonstrates:</h2>
+        <ul>
+          <li>
+            Implementing a data provider to create a totals row at the end of
+            the grid.
+          </li>
+          <li>This is a simplification of what the DataView does.</li>
+          <li>
+            The example in the GitHub link randomly generates 10 columns of
+            integer data type and has a total row at the bottom. Add another row
+            for calculating the averages. Ensure that the average is updated on
+            each cell edit.
+          </li>
+        </ul>
+      </div>
+      <h2>View Source:</h2>
+      <ul>
+        <li>
+          <a
+            href="https://github.com/6pac/SlickGrid/blob/master/examples/example-totals-via-data-provider.html"
+            target="_sourcewindow"
+          >
+            View the source for this example on Github</a
+          >
+        </li>
+      </ul>
+    </div>
+
+    <script src="public/js/firebugx.js"></script>
+
+    <script src="public/js/jquery-1.12.4.min.js"></script>
+    <script src="public/js/jquery-ui.min.js"></script>
+    <script src="public/js/jquery.event.drag-2.3.0.js"></script>
+
+    <script src="public/js/slick.core.js"></script>
+    <script src="public/js/slick.editors.js"></script>
+    <script src="public/js/slick.grid.js"></script>
+
+    <script>
+      var grid;
+      var data = [];
+      var options = {
+        enableCellNavigation: true,
+        headerRowHeight: 30,
+        editable: true,
+      };
+
+      var columns = [];
+      for (var i = 0; i < 10; i++) {
+        columns.push({
+          id: i,
+          name: String.fromCharCode("A".charCodeAt(0) + i),
+          field: i,
+          width: 60,
+          editor: Slick.Editors.Integer,
+        });
+      }
+
+      function TotalsDataProvider(data, columns) {
+        var totals = {};
+        var averages = {};
+        var totalsMetadata = {
+          // Style the totals row differently.
+          cssClasses: "totals",
+          columns: {},
+        };
+
+        var averagesMetadata = {
+          cssClasses: "averages",
+          columns: {},
+        };
+
+        // Make the totals not editable.
+        for (var i = 0; i < columns.length; i++) {
+          totalsMetadata.columns[i] = { editor: null };
+          averagesMetadata.columns[i] = { editor: null };
+        }
+
+        this.getLength = function () {
+          return data.length + 2; //increase the length by 2 rows
+        };
+
+        this.getItem = function (index) {
+          if (index == data.length) {
+            return totals; //add totals row
+          } else if (index == data.length + 1) {
+            return averages; //add averages row
+          } else {
+            return data[index]; //add other rows
+          }
+        };
+
+        this.updateTotals = function () {
+          var columnIdx = columns.length;
+
+          while (columnIdx--) {
+            var columnId = columns[columnIdx].id;
+            var total = 0;
+            var i = data.length;
+            while (i--) {
+              total += parseInt(data[i][columnId], 10) || 0;
+            }
+            var average = total / columns.length; //calc the averages
+
+            totals[columnId] = "Sum:  " + total;
+            averages[columnId] = "Ave: " + average;
+          }
+        };
+
+        this.getItemMetadata = function (index) {
+          switch (index) {
+            case data.length:
+              return totalsMetadata;
+            case data.length + 1:
+              return averagesMetadata;
+            default:
+              return null;
+          }
+        };
+
+        this.updateTotals();
+      }
+
+      $(function () {
+        for (var i = 0; i < 10; i++) {
+          var d = (data[i] = {});
+          d["id"] = i;
+          for (var j = 0; j < columns.length; j++) {
+            d[j] = Math.round(Math.random() * 10);
+          }
+        }
+
+        var dataProvider = new TotalsDataProvider(data, columns);
+
+        grid = new Slick.Grid("#myGrid", dataProvider, columns, options);
+
+        grid.onCellChange.subscribe(function (e, args) {
+          // The data has changed - recalculate the totals adn average.
+          dataProvider.updateTotals();
+
+          // Rerender the totals row (last row).
+          grid.invalidateRow(dataProvider.getLength() - 1); //average row
+          grid.invalidateRow(dataProvider.getLength() - 2); //sum row
+          grid.render();
+        });
+      });
+    </script>
+  </body>
+</html>
