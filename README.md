@@ -12,8 +12,10 @@ A simple page that randomly generates columns of integer data type and has a tot
 
 ## Description
 This browser application allows the user to edit each cell in the table and get the sum and average result at the bottom.
-### Requirements
+![image](https://user-images.githubusercontent.com/5101579/136845399-85d2eace-5a37-47d4-bd99-0282488c45ac.png)
 
+
+### Requirements
 1. The example in the GitHub link randomly generates 10 columns of integer data type and
 has a total row at the bottom. Add another row for calculating the averages. Ensure that
 the average is updated on each cell edit.
