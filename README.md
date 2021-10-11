@@ -29,5 +29,5 @@ see totals, but we do want to record the average.
 
 ## Setup/Installation Requirements
 - Clone this repository to your desktop
-- Navigate to the top lever of the directory
+- Navigate to the top level of the directory
 - Open `index.hml` in your browser
