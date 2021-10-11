@@ -11,6 +11,7 @@
         color: gray;
         font-style: italic;
       }
+
       .averages {
         font-weight: bold;
         color: rebeccapurple;
@@ -18,25 +19,32 @@
       }
     </style>
   </head>
+
   <body>
     <div style="position: relative">
-      <div style="width: 600px">
-        <div id="myGrid" style="width: 100%; height: 500px"></div>
+      <div style="width: 620px">
+        <div id="myGrid" style="width: 100%; height: 420px"></div>
       </div>
 
       <div class="options-panel">
         <h2>Demonstrates:</h2>
         <ul>
-          <li>
-            Implementing a data provider to create a totals row at the end of
-            the grid.
-          </li>
+          <li>Implementing a data provider to create a totals row at the end of the grid.</li>
           <li>This is a simplification of what the DataView does.</li>
+        </ul>
+        <h2>Requirements:</h2>
+        <ul>
           <li>
-            The example in the GitHub link randomly generates 10 columns of
-            integer data type and has a total row at the bottom. Add another row
-            for calculating the averages. Ensure that the average is updated on
-            each cell edit.
+            Add another row for calculating the averages. Ensure that the average is updated on each cell edit.
+          </li>
+          <li>Now, let the 3rd column be a simple text field that can take up to 80 characters, (cannot
+            include any special characters). Assume random data generation at load time.</li>
+          <li>
+            Now, let the 4th column be a date-type column. Assume random data generation at load
+            time. Use a read-only formatter that will display the number of weeks and number of days.
+            For example: if the data entered in the US locale is 01/20/2021, then the formatter would
+            display the info on the cell as Week 3, Day 20 of 2021. For this column, we don’t want to
+            see totals, but we do want to record the average.
           </li>
         </ul>
       </div>
@@ -44,7 +52,7 @@
       <ul>
         <li>
           <a
-            href="https://github.com/6pac/SlickGrid/blob/master/examples/example-totals-via-data-provider.html"
+            href="https://github.com/anrmk/gmv-test"
             target="_sourcewindow"
           >
             View the source for this example on Github</a
@@ -59,11 +67,14 @@
     <script src="public/js/jquery-ui.min.js"></script>
     <script src="public/js/jquery.event.drag-2.3.0.js"></script>
 
+    <script src="public/js/extensions.js"></script>
+
     <script src="public/js/slick.core.js"></script>
     <script src="public/js/slick.editors.js"></script>
     <script src="public/js/slick.grid.js"></script>
 
     <script>
+      var reg = new RegExp('[<>%\$]', 'g');
       var grid;
       var data = [];
       var options = {
@@ -74,13 +85,31 @@
 
       var columns = [];
       for (var i = 0; i < 10; i++) {
+        var id = i;
+        var field = i;
+        var name = String.fromCharCode("A".charCodeAt(0) + i);
+        var width = 60;
+        var editor = Slick.Editors[i === 2 ? "Text" : i === 3 ? "Date" : "Integer"];
+        var validator = editor == Slick.Editors.Text ? textFieldValidator : null;
+
         columns.push({
-          id: i,
-          name: String.fromCharCode("A".charCodeAt(0) + i),
-          field: i,
-          width: 60,
-          editor: Slick.Editors.Integer,
+          id,
+          name,
+          field,
+          width,
+          editor,
+          validator
         });
+      }
+
+      function textFieldValidator(value, input) {
+        if(!!reg.exec(value)) {
+          return { valid: false, msg: ""};
+        } else if(value !== null && value.length > 80) {
+          return { valid: false, msg: "Value length should not over 80"};
+        } else {
+          return { valid: true, msg: null};
+        }
       }
 
       function TotalsDataProvider(data, columns) {
@@ -124,13 +153,24 @@
             var columnId = columns[columnIdx].id;
             var total = 0;
             var i = data.length;
+
             while (i--) {
-              total += parseInt(data[i][columnId], 10) || 0;
+              total += parseInt(data[i][columnIdx === 3 ? "value" : columnId], 10) || 0;
             }
+              
             var average = total / columns.length; //calc the averages
 
-            totals[columnId] = "Sum:  " + total;
-            averages[columnId] = "Ave: " + average;
+            if(columnId === 2) {
+              totals[columnId] = "-";
+              averages[columnId] = "-";
+            } else if (columnId === 3) {
+              var aDate = new Date(average);
+              totals[columnId] = "-";
+              averages[columnId] = "Ave: " + aDate.customFormat();
+            } else {
+              totals[columnId] = "Sum:  " + total;
+              averages[columnId] = "Ave: " + average;
+            }
           }
         };
 
@@ -152,8 +192,18 @@
         for (var i = 0; i < 10; i++) {
           var d = (data[i] = {});
           d["id"] = i;
+          
           for (var j = 0; j < columns.length; j++) {
-            d[j] = Math.round(Math.random() * 10);
+            if (j === 2) {
+              d[j] = String.randomText(5); //random text generation
+            } else if (j === 3) {
+              var value = Date.randomDate(new Date(2012, 0, 1), new Date()); //random data generation
+              d["value"] = value.getTime();
+              console.log(d["value"])
+              d[j] = value.customFormat(); //format date ad Week X, Day Y of YYYY
+            } else {
+              d[j] = Math.round(Math.random() * 10);
+            }
           }
         }
 
@@ -162,6 +212,8 @@
         grid = new Slick.Grid("#myGrid", dataProvider, columns, options);
 
         grid.onCellChange.subscribe(function (e, args) {
+
+          console.log(d["value"]);
           // The data has changed - recalculate the totals adn average.
           dataProvider.updateTotals();
 
