@@ -83,6 +83,11 @@
         editable: true,
       };
 
+      $.datepicker.setDefaults ({
+        dateFormat: 'mm/dd/yy',
+        regional: 'en-US'
+      });
+
       var columns = [];
       for (var i = 0; i < 10; i++) {
         var id = i;
@@ -91,6 +96,7 @@
         var width = 60;
         var editor = Slick.Editors[i === 2 ? "Text" : i === 3 ? "Date" : "Integer"];
         var validator = editor == Slick.Editors.Text ? textFieldValidator : null;
+        var formatter = editor == Slick.Editors.Date ? dateFormatter : null;
 
         columns.push({
           id,
@@ -98,9 +104,20 @@
           field,
           width,
           editor,
-          validator
+          validator,
+          formatter
         });
       }
+
+      function dateFormatter(row, cell, value, columnDef, dataContext) {
+        var date = new Date(value);
+        if(date instanceof Date && !isNaN(date)) {
+          //var weekOfTheYear = $.datepicker.iso8601Week(date); get weeks of the year by datepicker (as alternative example)
+          return date.customFormat(); //format date ad Week X, Day Y of YYYY
+        }
+        
+        return value;
+      } 
 
       function textFieldValidator(value, input) {
         if(!!reg.exec(value)) {
@@ -155,7 +172,12 @@
             var i = data.length;
 
             while (i--) {
-              total += parseInt(data[i][columnIdx === 3 ? "value" : columnId], 10) || 0;
+              var val = data[i][columnId];
+              if(columnId === 3) {
+                val = new Date(val).getTime();
+              }
+              
+              total += parseInt(val, 10) || 0;
             }
               
             var average = total / columns.length; //calc the averages
@@ -197,10 +219,8 @@
             if (j === 2) {
               d[j] = String.randomText(5); //random text generation
             } else if (j === 3) {
-              var value = Date.randomDate(new Date(2012, 0, 1), new Date()); //random data generation
-              d["value"] = value.getTime();
-              console.log(d["value"])
-              d[j] = value.customFormat(); //format date ad Week X, Day Y of YYYY
+              var date = Date.randomDate(new Date(2012, 0, 1), new Date()); //random data generation
+              d[j] = $.datepicker.formatDate("mm/dd/yy", date);
             } else {
               d[j] = Math.round(Math.random() * 10);
             }
@@ -212,8 +232,6 @@
         grid = new Slick.Grid("#myGrid", dataProvider, columns, options);
 
         grid.onCellChange.subscribe(function (e, args) {
-
-          console.log(d["value"]);
           // The data has changed - recalculate the totals adn average.
           dataProvider.updateTotals();
 
